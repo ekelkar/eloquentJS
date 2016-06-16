@@ -27,6 +27,8 @@ function Vector(x, y) {
 
 // Objects move by vector arithmetic, negative number move down and left 
 Vector.prototype.plus = function(other) {
+  // This acts on a vector, so the original vector is changed. 
+  //    Make sure to use a new Vector if you want to maintain original.
   return new Vector(this.x + other.x, this.y + other.y);
 }
 
@@ -42,7 +44,7 @@ Vector.prototype.plus = function(other) {
 //              |(0,0)|(1,0)|(2,0)|(3,0)|(4,0)|
 //              -------------------------------
 //           1  |  5  |  6  |  7  |  8  |  9  |
-//              |(0,1)|(1,2)|(2,1)|(3,1)|(4,1)|
+//              |(0,1)|(1,1)|(2,1)|(3,1)|(4,1)|
 //              -------------------------------
 //           2  | 10  | 11  | 12  | 13  | 14  |
 //              |(0,2)|(1,2)|(2,2)|(3,2)|(4,2)|
@@ -138,7 +140,6 @@ function charFromElement(element) {
   if (element == null) {
     return " ";
   } else {
-    console.log("Not a null element:", element);
     return element.originChar;
   }
 }
@@ -178,6 +179,66 @@ World.prototype.toString = function() {
   }
   return output;
 }
+
+// A view object looks at a world from the set vector which is the location of
+// a critter. This gives the critter's view of the world
+function View(world, vector) {
+  this.world = world;
+  this.vector = vector;
+}
+
+// Look checks the world from the vector
+//   Returns: 
+//     the character representing the object in the given direction or
+//     'Invalid direction' if the direction is outside the world
+
+View.prototype.look = function(direction) {
+  // Use a tempVector to avoid changing original vector
+  var tempVector = new Vector(this.vector.x, this.vector.y);
+  var checkLocation = tempVector.plus(directions[direction]);
+  var valid = this.world.grid.isInside(checkLocation);
+  if (valid) {
+    return charFromElement(this.world.grid.get(checkLocation));
+  } else {
+    return ('Invalid direction');
+  }
+  
+//  console.log("Check location:", checkLocation, "value: ",
+//              this.world.grid.get(checkLocation));
+//  return charFromElement(this.world.grid.get(checkLocation));
+};
+
+// find takes a map character as an argument. 
+//   Returns: 
+//      a direction in which the character can be found next to the critter or 
+//      null if no such direction exists
+
+View.prototype.find = function(charToFind) {
+  console.log("finding: ", charToFind);
+  console.log("vector to start:", this.vector);
+  console.log("directions:");
+  
+  // ForEach continues for all values even if you want to return
+  
+  var foundDirection = null;
+  directionNames.forEach(function(direction) {
+    if (foundDirection) {
+      return;
+    }
+    var tempVector = this.vector;
+    var vectorToCheck = tempVector.plus(directions[direction]);
+    console.log("Check vector:", vectorToCheck);
+    if (this.world.grid.isInside(vectorToCheck)) {
+      console.log(direction);
+      if (charFromElement(this.world.grid.get(vectorToCheck)) === charToFind) {
+        console.log("found: " + direction);
+        foundDirection = direction;
+      } 
+    }
+  }, this);
+  return foundDirection;
+};
+  
 var grid5x4 = new Grid(5,4);
 for (var y = 0; y < 4; y += 1) {
   for (var x = 0; x < 5; x += 1) {
@@ -197,6 +258,16 @@ var legend = {"#": Wall,
 var world = new World(plan, legend);
 console.log(world.toString());
 
+var testVector = new Vector(10,3);
+var view = new View(world, testVector);
+console.log("Start vector: ", testVector);
+directionNames.forEach(function(direction) {
+  console.log(direction  + ": '" + view.look(direction) + "'");
+});
 
-    
+// console.log("From", testVector + "looking s: '" + view.look("s") + "'");
+console.log(view.find("#"));
 
+
+
+  
