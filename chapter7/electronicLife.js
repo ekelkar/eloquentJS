@@ -117,7 +117,7 @@ function randomElement(array) {
 
 // Create an array of direction names
 var directionNames = "n ne e se s sw w nw".split(" ");
-console.log('directionNames:', directionNames);
+// console.log('directionNames:', directionNames);
 
 
 // The following function converts a direction and number into a new direction
@@ -174,6 +174,48 @@ WallFollower.prototype.act = function (view) {
 // A wall is a simple object that takes up space but has no act method
 function Wall() {
 }
+
+// A plant oblect is created with energy between 3 and 7
+function Plant() {
+  this.energy = 3 + Math.random() * 4;
+}
+
+// Plants with greater than 15 energy can reproduce into an empty space.
+// Plants grow until they reach energy 20.
+
+Plant.prototype.act = function(view) {
+  if (this.energy > 15) {
+    var space = view.find(" ");
+    if (space) {
+      return {type: "reproduce", direction: space};
+    }
+    if (this.energy < 20) {
+     return {type: "grow"}; 
+    }
+  }
+};
+
+// A plant eater is an object, Its initial energy is 20.
+
+function PlantEater() {
+ this.energy = 20;
+}
+
+PlantEater.prototype.act = function(view) {
+  var space = view.find(" ");
+  var plant = view.find("*");
+  
+  if (this.energy > 60 && space) {
+    return {type: "reproduce", direction: space}; 
+  }
+  if (plant) {
+   return {type: "eat", direction: plant}; 
+  }
+  if (space) {
+   return {type: "move", direction: space}; 
+  }
+};
+
 // Using the legend, create new objects of the appropriate type, remember the
 // originChar so this can be displayed when printing.
 
@@ -183,7 +225,7 @@ function elementFromChar(legend, ch) {
     return null;
   }
   var element = new legend[ch]();
-  console.log("Created element:", legend[ch]);
+//  console.log("Created element:", legend[ch]);
   
   // Add the originChar field to objects created above
   element.originChar = ch;
@@ -204,7 +246,7 @@ function charFromElement(element) {
 // Use the input map (i.e., an array of lines) to create a grid of the world
 function World(map, legend) {
   
-  console.log("legend:", legend);
+//  console.log("legend:", legend);
   // The width of the grid is the width of the first line. The height of the 
   // grid is the number of lines.
   var grid = new Grid(map[0].length, map.length);
@@ -248,6 +290,8 @@ World.prototype.turn = function() {
 
 World.prototype.letAct = function(critter, vector) {
   var action = critter.act(new View(this, vector));
+  // Check that an action is set and that the action is "move".
+  // "move" is the only valid action in the world.
   if (action && action.type == "move") {
     var dest = this.checkDestination(action, vector);
     if (dest && this.grid.get(dest) == null) {
@@ -267,7 +311,87 @@ World.prototype.checkDestination = function(action, vector) {
       }
     }
 };
-                    
+
+// A LifeLikeWorld is a world build on top of the existing World.
+
+function LifeLikeWorld(map, legend) {
+  World.call(this, map, legend);
+}
+
+LifeLikeWorld.prototype = Object.create(World.prototype);
+
+// The actionTypes object stores the functions called by the letAct method
+// based on the type of work an object is performing.
+ 
+var actionTypes = Object.create(null);
+
+LifeLikeWorld.prototype.letAct = function(critter, vector) {
+  var action = critter.act(new View(this, vector));
+  var handled = action &&
+      action.type in actionTypes &&
+      actionTypes[action.type].call(this, critter, vector, action);
+  
+  // If no action is performed, reduce energy by 0.2.
+  //   Then if the critter's energy is < 0, remove it from the grid.
+  if (!handled) {
+    critter.energy -= 0.2;
+    if (critter.energy <= 0) {
+      this.grid.set(vector, null); 
+    }
+  }
+};
+
+actionTypes.grow = function(critter) {
+  critter.energy += 0.5;
+  return true;
+};
+
+// The critter can move it its destination is not null, 
+// its enegry is greater than 1, and there is nothing in
+// the dest it wants to move into.
+
+actionTypes.move = function(critter, vector, action) {
+  var dest = this.checkDestination(action, vector);
+  if (dest == null ||
+      critter.energy <= 1 ||
+      this.grid.get(dest) != null) {
+    return false;
+  }
+  // Moving reduces a creature energy by one. Make the creature's
+  // current location null and move the critter to the destination
+  critter.energy -= 1;
+  this.grid.set(vector, null);
+  this.grid.set(dest, critter);
+  return true;
+};
+
+// A critter can eat an adjacent square but does not move into that 
+// space.
+actionTypes.eat = function(critter, vector, action) {
+  var dest = this.checkDestination(action, vector);
+  var atDest = dest != null && this.grid.get(dest);
+  
+  if (!atDest || atDest.energy == null)
+    return false;
+  critter.energy += atDest.energy;
+  this.grid.set(dest, null);
+  return true;
+};
+
+actionTypes.reproduce = function(critter, vector, action) {
+  var baby = elementFromChar(this.legend, critter.originChar);
+  var dest = this.checkDestination(action, vector);
+  
+  if (dest == null || critter.energy <= 2 * baby.energy ||
+      this.grid.get(dest) != null) {
+   return false; 
+  }
+  critter.energy -= 2 * baby.energy;
+  this.grid.set(dest, baby);
+  return true;
+};
+  
+
 
 // A view object looks at a world from the set vector which is the location of
 // a critter. This gives the critter's view of the world
@@ -276,82 +400,134 @@ function View(world, vector) {
   this.vector = vector;
 }
 
+// The following is the version of look I implemented 
+
 // Look checks the world from the vector
 //   Returns: 
 //     the character representing the object in the given direction or
 //     'Invalid direction' if the direction is outside the world
 
-View.prototype.look = function(direction) {
-  // Use a tempVector to avoid changing original vector
-  var tempVector = new Vector(this.vector.x, this.vector.y);
-  var checkLocation = tempVector.plus(directions[direction]);
-  var valid = this.world.grid.isInside(checkLocation);
-  if (valid) {
-    return charFromElement(this.world.grid.get(checkLocation));
-  } else {
-    return ('Invalid direction');
-  }
-  
+//View.prototype.look = function(direction) {
+//  // Use a tempVector to avoid changing original vector
+//  var tempVector = new Vector(this.vector.x, this.vector.y);
+//  var checkLocation = tempVector.plus(directions[direction]);
+//  var valid = this.world.grid.isInside(checkLocation);
+//  if (valid) {
+//    return charFromElement(this.world.grid.get(checkLocation));
+//  } else {
+//    return ('Invalid direction');
+//  }
+//  
 //  console.log("Check location:", checkLocation, "value: ",
 //              this.world.grid.get(checkLocation));
 //  return charFromElement(this.world.grid.get(checkLocation));
+// };
+
+// look checks the world from the vector 
+//   Returns: 
+//     the character representing the object in the given direction or
+//     "#" character which represent a wall if the direction is outside the world
+//           A critter cannot move where a wall is, so this prevents the critter
+//             from attempting to move outside the world.
+
+View.prototype.look = function(dir) {
+  var target = this.vector.plus(directions[dir]);
+  
+  if (this.world.grid.isInside(target)) {
+    return charFromElement(this.world.grid.get(target)); 
+  } else {
+   return "#"; 
+  }
 };
 
+// The following find and findall I implemented 
 // find takes a map character as an argument. 
 //   Returns: 
 //      a direction in which the character can be found next to the critter or 
 //      null if no such direction exists
 
-View.prototype.find = function(charToFind) {
-  console.log("finding: ", charToFind);
-  console.log("vector to start:", this.vector);
-  console.log("directions:");
-  
-  // ForEach continues for all values even if you want to return
-  
-  var foundDirection = null;
-  directionNames.forEach(function(direction) {
-    if (foundDirection) {
-      return;
-    }
-    var tempVector = this.vector;
-    var vectorToCheck = tempVector.plus(directions[direction]);
-    console.log("Check vector:", vectorToCheck);
-    if (this.world.grid.isInside(vectorToCheck)) {
-      console.log(direction);
-      if (charFromElement(this.world.grid.get(vectorToCheck)) === charToFind) {
-        console.log("found: " + direction);
-        foundDirection = direction;
-      } 
-    }
-  }, this);
-  return foundDirection;
-};
+//View.prototype.find = function(charToFind) {
+////  console.log("finding: ", charToFind);
+////  console.log("vector to start:", this.vector);
+////  console.log("directions:");
+//  
+//  // ForEach continues for all values even if you want to return
+//  
+//  var foundDirection = null;
+//  directionNames.forEach(function(direction) {
+//    if (foundDirection) {
+//      return;
+//    }
+//    var tempVector = this.vector;
+//    var vectorToCheck = tempVector.plus(directions[direction]);
+////    console.log("Check vector:", vectorToCheck);
+//    if (this.world.grid.isInside(vectorToCheck)) {
+////      console.log(direction);
+//      if (charFromElement(this.world.grid.get(vectorToCheck)) === charToFind) {
+////        console.log("found: " + direction);
+//        foundDirection = direction;
+//      } 
+//    }
+//  }, this);
+//  return foundDirection;
+//};
 
 // findall takes a map character as an argument. 
 //   Returns: 
 //      an array of directions in which the character can be found next to the critter or 
 //      an empty array if character not found in the critter's view
 
-View.prototype.findall = function(charToFind) {
-  console.log("finding all: ", charToFind);
-  console.log("vector to start:", this.vector);
-  console.log("directions:");
+//View.prototype.findall = function(charToFind) {
+////  console.log("finding all: ", charToFind);
+////  console.log("vector to start:", this.vector);
+////  console.log("directions:");
+//  
+//  // ForEach continues for all values even if you want to return
+//  
+//  var foundDirections = [];
+//  foundDirections = directionNames.filter(function(direction) {
+//    var tempVector = this.vector;
+//    var vectorToCheck = tempVector.plus(directions[direction]);
+////    console.log("Check vector:", vectorToCheck);
+//    if (this.world.grid.isInside(vectorToCheck)) {
+////      console.log(direction);
+//      return charFromElement(this.world.grid.get(vectorToCheck)) === charToFind 
+//    }
+//  }, this);
+////  console.log("Foundall directions: ", foundDirections);
+//  return foundDirections;
+//};
+
+// findall takes a map character as an argument. 
+//   Returns: 
+//      an array of directions in which the character can be found next to the critter or 
+//      an empty array if character not found in the critter's view
+
+View.prototype.findAll = function(ch) {
+  var found = [];
   
-  // ForEach continues for all values even if you want to return
-  
-  var foundDirections = [];
-  foundDirections = directionNames.filter(function(direction) {
-    var tempVector = this.vector;
-    var vectorToCheck = tempVector.plus(directions[direction]);
-    console.log("Check vector:", vectorToCheck);
-    if (this.world.grid.isInside(vectorToCheck)) {
-      console.log(direction);
-      return charFromElement(this.world.grid.get(vectorToCheck)) === charToFind 
+  // Check each direction for the given character, add direction to found array
+  // if seen.
+  for (var dir in directions) {
+    if (this.look(dir) == ch) {
+      found.push(dir); 
     }
-  }, this);
-  console.log("Foundall directions: ", foundDirections);
-  return foundDirections;
+  }
+  return found;
+};
+
+// find takes a map character as an argument. 
+//   Returns: 
+//      a random direction in which the character can be found next to the location or 
+//      null if no such direction exists
+
+View.prototype.find = function (ch) {
+  var found = this.findAll(ch);
+  
+  if (found.length == 0) {
+   return null; 
+  }
+  return randomElement(found);
 };
   
 var grid5x4 = new Grid(5,4);
@@ -386,7 +562,7 @@ directionNames.forEach(function(direction) {
 
 // console.log("From", testVector + "looking s: '" + view.look("s") + "'");
 console.log(view.find("#"));
-console.log(view.findall("#"));
+console.log(view.findAll("#"));
 
 for (var i = 0; i < 5; i++) {
   world.turn();
@@ -409,6 +585,27 @@ for (var i = 0; i < 10; i += 1) {
   console.log(wallFollowerWorld.toString());
 }
 
+var valleyPlan = ["############################",
+                  "#####                 ######",
+                  "##   ***                **##",
+                  "#   *##**         **  O  *##",
+                  "#    ***     O    ##**    *#",
+                  "#       O         ##***    #",
+                  "#                 ##**     #",
+                  "#   O       #*             #",
+                  "#*          #**       O    #",
+                  "#***        ##**    O    **#",
+                  "##****     ###***       *###",
+                  "############################"];
 
+var valleyLegend = {"#": Wall,
+                    "O": PlantEater,
+                    "*": Plant};
 
-  
+var valley = new LifeLikeWorld(valleyPlan, valleyLegend);
+
+console.log(valley.toString());
+for (var i = 0; i < 10; i += 1) {
+  valley.turn();
+  console.log(valley.toString());
+}
