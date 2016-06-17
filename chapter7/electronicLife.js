@@ -80,6 +80,24 @@ Grid.prototype.set = function(vector, value) {
   this.space[this.width * vector.y + vector.x] = value;
 };
 
+// The following specialized grid forEach function specifies a context
+//    parameter by using the call method to call a function with a context
+Grid.prototype.forEach = function(f, context) {
+  // Loop over each vector in the grid
+  for (var y = 0; y < this.height; y += 1) {
+    for (var x = 0; x < this.width; x += 1) {
+      // Find out what is located in a grid vector
+      var value = this.space[x + y * this.width];
+      // For ever vector with an valid object in the location
+      //   somehow calling a function with this context???
+      if (value != null) {
+        f.call(context, value, new Vector(x, y));
+      }
+    }
+  }
+};
+      
+
 // Use the directions object to map direction names into coordinate offsets.
 var directions = {
   "n":  new Vector( 0, -1),
@@ -101,6 +119,21 @@ function randomElement(array) {
 var directionNames = "n ne e se s sw w nw".split(" ");
 console.log('directionNames:', directionNames);
 
+
+// The following function converts a direction and number into a new direction
+// Input: 
+//   dir - a character string indicating a direction (e.g., "n", "se") 
+//   n   - a number n indicating how many 45-degree turns to make
+//         A positive n means the critter is moving in a clockwise direction
+//         A negative n means the critter is moving in a counter clockwise direction
+// Returns:
+//   a character string representing the new direction (e.g., "s", "nw")
+
+function dirPlus (dir, n) {
+  var index = directionNames.indexOf(dir);
+  return directionNames[(index + n + 8) % 8];
+}
+
 // Create a critter that has direction
 function BouncingCritter() {
   this.direction = randomElement(directionNames);
@@ -114,6 +147,28 @@ BouncingCritter.prototype.act = function(view) {
     this.direction = view.find(" ") || "s";
   }
   return {type: "move", direction: this.direction};
+};
+
+// Another type of critter in this world is the WallFlower who starts out looking 
+//   south.
+function WallFollower() {
+  this.dir = "s";
+}
+
+WallFollower.prototype.act = function (view) {
+  var start = this.dir;
+  // If there is a wall or another animal, turn to face the wall
+  if (view.look(dirPlus(this.dir, -3)) != " ") {
+      start = this.dir = dirPlus(this.dir, -2);
+    }
+  // Continue looking for the next non-empty space
+  while (view.look(this.dir) != " ") {
+      this.dir = dirPlus(this.dir, 1);
+      if (this.dir == start) {
+        break;
+      }
+  }
+  return {type: "move", direction: this.dir};
 };
 
 // A wall is a simple object that takes up space but has no act method
@@ -178,7 +233,41 @@ World.prototype.toString = function() {
     output = output += '\n';
   }
   return output;
-}
+};
+
+World.prototype.turn = function() {
+  var acted = [];    // Keep an array of critters that have acted this turn
+  this.grid.forEach(function(critter, vector) {
+    // if the critter has an act method and has not already acted
+    if (critter.act && acted.indexOf(critter) == -1) {
+      acted.push(critter);
+      this.letAct(critter, vector);
+    }
+  }, this);
+};
+
+World.prototype.letAct = function(critter, vector) {
+  var action = critter.act(new View(this, vector));
+  if (action && action.type == "move") {
+    var dest = this.checkDestination(action, vector);
+    if (dest && this.grid.get(dest) == null) {
+      // If there is a dest and nothing is there. Set the current location to
+      //    null and move the critter to the dest.
+      this.grid.set(vector, null);
+      this.grid.set(dest, critter);
+    }
+  }
+};
+
+World.prototype.checkDestination = function(action, vector) {
+    if (directions.hasOwnProperty(action.direction)) {
+      var dest = vector.plus(directions[action.direction]);
+      if (this.grid.isInside(dest)) {
+        return dest;
+      }
+    }
+};
+                    
 
 // A view object looks at a world from the set vector which is the location of
 // a critter. This gives the critter's view of the world
@@ -238,6 +327,32 @@ View.prototype.find = function(charToFind) {
   }, this);
   return foundDirection;
 };
+
+// findall takes a map character as an argument. 
+//   Returns: 
+//      an array of directions in which the character can be found next to the critter or 
+//      an empty array if character not found in the critter's view
+
+View.prototype.findall = function(charToFind) {
+  console.log("finding all: ", charToFind);
+  console.log("vector to start:", this.vector);
+  console.log("directions:");
+  
+  // ForEach continues for all values even if you want to return
+  
+  var foundDirections = [];
+  foundDirections = directionNames.filter(function(direction) {
+    var tempVector = this.vector;
+    var vectorToCheck = tempVector.plus(directions[direction]);
+    console.log("Check vector:", vectorToCheck);
+    if (this.world.grid.isInside(vectorToCheck)) {
+      console.log(direction);
+      return charFromElement(this.world.grid.get(vectorToCheck)) === charToFind 
+    }
+  }, this);
+  console.log("Foundall directions: ", foundDirections);
+  return foundDirections;
+};
   
 var grid5x4 = new Grid(5,4);
 for (var y = 0; y < 4; y += 1) {
@@ -253,12 +368,16 @@ grid5x4.set(new Vector(2,1), 57);
 console.log('value of (2,1):', grid5x4.get(new Vector(2,1)));
 
 var legend = {"#": Wall,
-              "o": BouncingCritter};
+              "o": BouncingCritter,
+              "~": WallFollower
+             };
+
+
 
 var world = new World(plan, legend);
 console.log(world.toString());
 
-var testVector = new Vector(10,3);
+var testVector = new Vector(6,3);
 var view = new View(world, testVector);
 console.log("Start vector: ", testVector);
 directionNames.forEach(function(direction) {
@@ -267,6 +386,28 @@ directionNames.forEach(function(direction) {
 
 // console.log("From", testVector + "looking s: '" + view.look("s") + "'");
 console.log(view.find("#"));
+console.log(view.findall("#"));
+
+for (var i = 0; i < 5; i++) {
+  world.turn();
+  console.log(world.toString());
+}
+
+var wallFollowerPlan = ["############",
+                        "#     #    #",
+                        "#   ~    ~ #",
+                        "#  ##      #",
+                        "#  ##  o####",
+                        "#          #",
+                        "############"];
+
+var wallFollowerWorld = new World(wallFollowerPlan, legend);
+console.log(wallFollowerWorld.toString());
+
+for (var i = 0; i < 10; i += 1) {
+  wallFollowerWorld.turn();
+  console.log(wallFollowerWorld.toString());
+}
 
 
 
