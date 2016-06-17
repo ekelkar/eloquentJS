@@ -198,21 +198,64 @@ Plant.prototype.act = function(view) {
 // A plant eater is an object, Its initial energy is 20.
 
 function PlantEater() {
- this.energy = 20;
+  this.energy = 20;
+  
+  // To make a smarter PlantEater
+  this.direction = "s";  // Sets the initial direction to South
 }
 
-PlantEater.prototype.act = function(view) {
+PlantEater.prototype.act = function (view) {
   var space = view.find(" ");
+  var spaces = view.findAll(" ");
   var plant = view.find("*");
-  
-  if (this.energy > 60 && space) {
-    return {type: "reproduce", direction: space}; 
+  var directionToMove = null; // If there is no valid space to move
+
+  if (this.energy > 60 && spaces) {
+    return {
+      type: "reproduce",
+      direction: space
+    };
   }
   if (plant) {
-   return {type: "eat", direction: plant}; 
+    return {
+      type: "eat",
+      direction: plant
+    };
   }
   if (space) {
-   return {type: "move", direction: space}; 
+    // My improved plantEaters
+    // Moves in the current direction if possible.
+    // If not, move in the next clockwise direction.
+    
+    console.log("Plant eater moving to free space");
+    // Plant eater moving to a free space
+    // indexOf return -1 if item not found in array
+    // Otherwise, the index of the item
+    if (spaces.indexOf(this.direction) > -1) {
+      // Continue in the same direction
+      space = this.direction;
+    } else {
+      var found = false;
+      while (!found) {
+        for (var i = 0; i < directionNames.length; i += 1) {
+          var startDir = directionNames.indexOf(this.direction);
+          var nextDirToCheck = directionNames[(startDir + i) % directionNames.length];
+          
+          // If nextDirToCheck found to be empty
+          if (spaces.indexOf(nextDirToCheck) > -1) {
+            found = true;
+            space = nextDirToCheck;
+            this.direction = space;
+            break;
+          }
+        }
+      }
+    }
+    console.log("Plant eaters direction: ", this.direction);
+    return {
+      type: "move",
+      direction: space
+    };
   }
 };
 
