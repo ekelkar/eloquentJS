@@ -76,11 +76,9 @@ var setFillIn = function sfi(lines) {
 
   // Prompt user for input
   console.log(i, lines[i].fillType + ' >');
-  // i += 1;
   rl.on('line', function (line) {
       // Accept user input
       console.log('You typed: ' + line);
-      // line.value = line;
       lines[i].value = line;
       console.log('line: ', lines[i]);
       i += 1;
@@ -88,18 +86,14 @@ var setFillIn = function sfi(lines) {
       // Skip over input until a FillIn object is found
       while (typeof lines[i] === 'string') {
         i += 1;
-        //        if (i >= noOfLines) {
-        //          console.log('Close readline 1');
-        //          rl.close();
-        //        }
       }
       if (i >= noOfLines) {
         console.log('Close readline 2');
         rl.close();
       }
+
       // Prompt user for input
       console.log(i, lines[i].fillType + ' >');
-      // i += 1;
     })
     .on('close', function () {
 
@@ -108,7 +102,6 @@ var setFillIn = function sfi(lines) {
       console.log(currentStory);
       printStory();
       process.exit(0);
-
     });
 };
 

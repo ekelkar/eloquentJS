@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html>
+
 <body>
 
-<h1>Texting JavaScript Fill In Story</h1>
+  <h1>Testing JavaScript Fill In Story</h1>
+  <textarea rows="4" cols="50" id="inputStory">Input story here
+  </textarea>
+  <button>Submit</button>
+  <br>
+  <h2>Output Story</h2>
+  <div id="outputStory">
 
-<!--button type="button"
-onclick="document.getElementById('demo').innerHTML = Date()">
-Click to add a person to list</button-->
-
-<p id="demo">demo text</p>
-<script src="./fillInStory.js">
-</script>
-
+  </div>
 
 </body>
-</html> 
+<script src="./fillInStory2.js">
+  var button = document.querySelector("button");
+  button.addEventListener("click", function () {
+    var story = "Default story";
+    story = document.getElementById("inputStory").value;
+    document.getElementById("outputStory").innerHTML = story;
+    console.log("Button clicked.");
+
+  });
+</script>
+
+</html>
