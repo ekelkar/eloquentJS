@@ -38,6 +38,7 @@ var story = "I went to the Maker Faire Atlanta with {person} and {person}. " +
 
 var storyLines = '';
 var currentStory = [];
+var printableStory = '';
 
 //console.log(story);
 storyLines = story.split('{');
@@ -111,30 +112,60 @@ function setFillInx(line) {
 
 var setFillIn = function sfi(lines) {
   var i = 0;
-  var maxi = lines.length;
+  var noOfLines = lines.length;
   var rl = readline.createInterface(process.stdin, process.stdout);
+
+  // Skip over input until a FillIn object is found
   while (typeof lines[i] === 'string') {
     i += 1;
   }
+
+  // Prompt user for an specific type of input
   console.log(i, lines[i].fillType + ' >');
   i += 1;
   rl.on('line', function (line) {
+      // Accept user input
       console.log('You typed: ' + line);
-      line.value = line;
+      // line.value = line;
+      lines[i - 1].value = line;
+      console.log('line: ', lines[i - 1]);
       while (typeof lines[i] === 'string') {
-        //if (i === maxi) rl.close();
+        //if (i === noOfLines) rl.close();
         i += 1;
-        if (i >= maxi) rl.close();
+        if (i >= noOfLines) {
+          console.log('Close readline 1');
+          rl.close();
+        }
       }
-      if (i >= maxi) rl.close();
+      if (i >= noOfLines) {
+        console.log('Close readline 2');
+        rl.close();
+      }
       console.log(i, lines[i].fillType + ' >');
       i += 1;
     })
     .on('close', function () {
 
       // do rest of the processing here
+      console.log('Handling close');
+      console.log(currentStory);
+      printStory();
       process.exit(0);
+
     });
+};
+
+var addToStory = function ats(line) {
+  if (typeof line === 'string') {
+    printableStory = printableStory + line;
+  } else {
+    printableStory = printableStory + line.value;
+  }
+};
+
+var printStory = function ps() {
+  currentStory.forEach(addToStory);
+  console.log(printableStory);
 };
 
 storyLines.forEach(findFillIn);
