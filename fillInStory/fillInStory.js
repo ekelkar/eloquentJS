@@ -1,23 +1,10 @@
-//const readline = require('readline');
-//
-//const rl = readline.createInterface({
-//  input: process.stdin,
-//  output: process.stdout
-//});
-//
-//console.log('readline rl: ' + rl);
-//console.log('readline.input: ', readline.input);
-//rl.question('Input story name: ', (storyName) => {
-//  console.log('Story: ' + storyName + ' to begin soon.');
-//  rl.close();
-//});
-
 const readline = require('readline');
+// const rl = readline.createInterface(process.stdin, process.stdout);
 
-//const rl = readline.createInterface({
-//  input: process.stdin,
-//  output: process.stdout
-//});
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
 //rl.question('Input story name? ', (storyName) => {
 //  // TODO: Log the answer in a database
@@ -40,109 +27,79 @@ var storyLines = '';
 var currentStory = [];
 var printableStory = '';
 
-//console.log(story);
 storyLines = story.split('{');
-//console.log(storyLines);
-//console.log(storyLines[0]);
-//currentStory.push(storyLines[0]);
-//console.log(currentStory);
-
 
 function printLine(s) {
   console.log(s);
 }
 
+/* Construct a FillIn object with the fields
+     fillType - type of input wanted
+     value    - value input
+*/
 function FillIn(s) {
   this.fillType = s;
   this.value = '';
 }
 
-function findFillIn(s) {
-  /* This function looks a string. If it containes a fillIn value, two items are added to
-      the currentStory, an object with an item and a value, and the remainder of the string.
-      Otherwise, the line is added to currentStory. 
-       
-       (e.g., 'person} and '  adds {person: ''} and ' and ' to currentStory
-       ' and a great time was had.' adds the line to currentStory
+/* This function looks at a string. If it containes a fillIn value, two items are added
+    to the currentStory array, a FillIn object and the remainder of the string.
+    Otherwise, the line is added to currentStory array. 
 
-  */
-  //  var beforeRCurly = /(\w+)\}/;
-  //  
-  //  var match = beforeRCurly.exec(s);
-  //  console.log(match);
+     (e.g., 'person} and ' adds {person: ''} and ' and ' to currentStory array
+     ' and a great time was had.' adds the line to currentStory
+
+*/
+function findFillIn(s) {
 
   var splitStr = '';
 
-  //  console.log(s);
-  if (s.indexOf('}') > 0) { // does line has a right curly, indexOf returns -1 if not found
+  // does line has a right curly, indexOf returns -1 if not found
+  if (s.indexOf('}') > 0) {
     splitStr = s.split('}');
-    //    console.log(splitStr);
     // push an object and then the rest of the string
     currentStory.push(new FillIn(splitStr[0]), splitStr[1]);
   } else {
     currentStory.push(s);
   }
-  //  console.log(currentStory);
 }
 
-//storyLines.forEach(function(s) {
-//  console.log(s);
-//});
-
-// storyLines.forEach(printLine);
-
-function setFillInx(line) {
-  var rl;
-  console.log('line: ' + line + ' type: ' + typeof line);
-  if (typeof line !== 'string') {
-    // console.log('fillin ' + line.fillType);
-    rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    rl.question('Input ' + line.fillType, (inputValue) => {
-      // TODO: Log the answer in a database
-      line.value = inputValue;
-      console.log(line.fillType + lineValue);
-      //rl.close();
-      //process.exit();
-    });
-  }
-}
 
 var setFillIn = function sfi(lines) {
   var i = 0;
   var noOfLines = lines.length;
-  var rl = readline.createInterface(process.stdin, process.stdout);
 
   // Skip over input until a FillIn object is found
   while (typeof lines[i] === 'string') {
     i += 1;
   }
 
-  // Prompt user for an specific type of input
+  // Prompt user for input
   console.log(i, lines[i].fillType + ' >');
-  i += 1;
+  // i += 1;
   rl.on('line', function (line) {
       // Accept user input
       console.log('You typed: ' + line);
       // line.value = line;
-      lines[i - 1].value = line;
-      console.log('line: ', lines[i - 1]);
+      lines[i].value = line;
+      console.log('line: ', lines[i]);
+      i += 1;
+
+      // Skip over input until a FillIn object is found
       while (typeof lines[i] === 'string') {
-        //if (i === noOfLines) rl.close();
         i += 1;
-        if (i >= noOfLines) {
-          console.log('Close readline 1');
-          rl.close();
-        }
+        //        if (i >= noOfLines) {
+        //          console.log('Close readline 1');
+        //          rl.close();
+        //        }
       }
       if (i >= noOfLines) {
         console.log('Close readline 2');
         rl.close();
       }
+      // Prompt user for input
       console.log(i, lines[i].fillType + ' >');
-      i += 1;
+      // i += 1;
     })
     .on('close', function () {
 
@@ -157,9 +114,9 @@ var setFillIn = function sfi(lines) {
 
 var addToStory = function ats(line) {
   if (typeof line === 'string') {
-    printableStory = printableStory + line;
+    printableStory += line;
   } else {
-    printableStory = printableStory + line.value;
+    printableStory += line.value;
   }
 };
 
