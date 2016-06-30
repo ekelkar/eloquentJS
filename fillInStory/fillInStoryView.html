@@ -4,25 +4,31 @@
 <body>
 
   <h1>Testing JavaScript Fill In Story</h1>
-  <textarea rows="4" cols="50" id="inputStory">Input story here
+  <textarea rows="4" cols="50" id="inputStory" placeholder="Input story here">
   </textarea>
-  <button>Submit</button>
+  <button onclick="findFillIn();">Read Story</button>
   <br>
   <h2>Output Story</h2>
   <div id="outputStory">
 
   </div>
-
+  <button onclick="process();">Generate</button>
+  <br />
+  <br />
+  <h4>Your Story: </h4>
+  <div id="final"></div>
 </body>
-<script src="./fillInStory2.js">
-  var button = document.querySelector("button");
-  button.addEventListener("click", function () {
-    var story = "Default story";
-    story = document.getElementById("inputStory").value;
-    document.getElementById("outputStory").innerHTML = story;
-    console.log("Button clicked.");
+<script src="https://code.jquery.com/jquery-2.2.4.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
 
-  });
+<script src="./fillInStory2.js">
+  //  var button = document.querySelector("button");
+  //  button.addEventListener("click", function () {
+  //    var story = "Default story";
+  //    story = document.getElementById("inputStory").value;
+  //    document.getElementById("outputStory").innerHTML = story;
+  //    console.log("Button clicked.");
+  //
+  //  });
 </script>
 
 </html>
