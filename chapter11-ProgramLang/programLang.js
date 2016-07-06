@@ -47,7 +47,8 @@ function parseExpression(program) {
             //     to allow letters, numbers and symbols other than left paran,
             //         right paran, comma, double quote
             //         /^[\w~!@#$%&*_-{};?+\/=><]+/
-            match = /^[\w~!@#$%&*_-{};?+\/=><]+/.exec(program);
+            console.log(program);
+            match = /^[\w~!@#$%&*_\-{};?+\/=><]+/.exec(program);
             if (match) {
                 expr = {
                     type: "word",
@@ -65,6 +66,7 @@ function parseApply(expr, program) {
     // Checks if the expression is an application. If so, parse the parantehsized
     //     list of arguments.
     var arg;
+
     program = skipSpace(program);
     if (program[0] !== "(") { // Not an application
         return {
@@ -73,6 +75,7 @@ function parseApply(expr, program) {
         };
     }
 
+    // Must be an application, skip the '(' character and get the arguments.
     program = skipSpace(program.slice(1));
     expr = {
         type: "apply",
@@ -128,6 +131,7 @@ function evaluate(expr, env) {
             expr.operator.name in specialForms) {
             return specialForms[expr.operator.name](expr.args, env);
         }
+
         op = evaluate(expr.operator, env);
         if (typeof op !== "function") {
             throw new TypeError("Applying a non-function.");
@@ -170,7 +174,9 @@ specialForms["do"] = function (args, env) {
     return value;
 };
 
-specialForms["define"] = function (args, env) {
+// Changed because of jslint warning ['define'] is better written with dot notation.
+// specialForms["define"] = function (args, env) {
+specialForms.define = function (args, env) {
     var value;
 
     if (args.length !== 2 || args[0].type !== "word") {
@@ -179,6 +185,39 @@ specialForms["define"] = function (args, env) {
     value = evaluate(args[1], env);
     env[args[0].name] = value;
     return value;
+};
+
+specialForms.fun = function (args, env) {
+    var argNames, body;
+
+    if (!args.length) {
+        throw new SyntaxError("Functions need a body");
+    }
+
+    function name(expr) {
+        if (expr.type !== "word") {
+            throw new SyntaxError("Arg names must be words");
+        }
+        return expr.name;
+    }
+
+    argNames = args.slice(0, args.length - 1).map(name);
+    body = args[args.length - 1];
+
+
+    return function () {
+        var i = 0, // loop counter
+            localEnv = Object.create(env); // contains both global & local variables
+
+        if (arguments.length !== argNames.length) {
+            throw new TypeError("Wrong number of arguments");
+        }
+
+        for (i = 0; i < arguments.length; i += 1) {
+            localEnv[argNames[i]] = arguments[i];
+        }
+        return evaluate(body, localEnv);
+    };
 };
 
 var topEnv = Object.create(null);
@@ -190,14 +229,48 @@ topEnv["false"] = false;
     topEnv[op] = new Function("a, b", "return a " + op + " b;");
 });
 
-topEnv["print"] = function (value) {
+// Changed to dot notation because of jslint warning
+// topEnv["print"] = function (value) {
+topEnv.print = function (value) {
     console.log(value);
     return value;
 };
 
+topEnv["array"] = function () {
+    var createArray = Array.prototype.slice.call(arguments, 0);
+    console.log("inside create array. What do I do?");
+    return createArray;
+    //    var i = 0,
+    //        createArray = [];
+    //
+    //    for (i = 0; i < args.length; i += 1) {
+    //        createArray[i] = args[i];
+    //    }
+    //    console.log("create array: ", createArray);
+    //    return createArray;
+};
+
+topEnv["length"] = function (arr) {
+    console.log("array length: ", arr.length);
+    return arr.length;
+};
+
+topEnv["element"] = function (arr, i) {
+    console.log("array elemnet ");
+    return arr[i];
+}
+
 function run() {
-    var env = Object.create(topEnv);
-    var program = Array.prototype.slice.call(arguments, 0).join("\n");
+    // See arguments object for description of arguments.
+
+    var env = Object.create(topEnv),
+        // The following converts arguments into an array which is then joined
+        // into a single string.
+        program = Array.prototype.slice.call(arguments, 0).join("\n");
+
+    console.log("program: ", program);
+    console.log(parse(program));
+    console.log("program: ", program);
     return evaluate(parse(program), env);
 }
 
@@ -213,15 +286,38 @@ function run() {
 //console.log("Invalid: ", parseExpression("'a+b'")); // strings cannot have +
 
 //run("do(define(a, 10),",
-//    "  print(+(a, 10)))");
+//    "    print(+(a, 10)))");
+//
+//run("do(define(total, 0),",
+//    "   define(count, 1),",
+//    "   while(<(count, 11),",
+//    "         do(define(total, +(total, count)),",
+//    "            define(count, +(count, 1)))),",
+//    "   print(total))");
 
-run("do(define(total, 15),",
-    //    "   define(count, 1),",
-    //    "   while(<(count, 11),",
-    //    "         do(define(total, +(total, count)),",
-    //    "            define(count, +(count, 1)))),",
-    "   print(total))");
+//run("do(define(plusOne, fun(a, +(a, 1))),",
+//  "   print(plusOne(10)))");
 
+//run("do(define(pow, fun(base, exp)))");
+//
+//run("do(define(pow, fun(base, exp,",
+//    "      if(==(exp, 0),",
+//    "         print(1),",
+//    "         print('other'))))",
+//    "   pow(2, 0))");
 
-console.log(parse(prog));
-console.log(evaluate(prog, topEnv));
+//run("do(define(pow, fun(base, exp,",
+//    "      if(==(exp, 0),",1
+//    "         1,",
+//    "         *(base, pow(base, -(exp, 1)))))),",
+//    "   print(pow(2, 10)))");
+
+run("do(print(element(array(5,2,3), 1)))");
+run("do(define(sum, fun(array,",
+    "      do(define(i, 0),",
+    "         define(sum, 0),",
+    "         while(<(i, length(array)),",
+    "           do(define(sum, +(sum, element(array, i))),",
+    "              define(i, +(i, 1)))),",
+    "         sum))),",
+    "   print(sum(array(1, 2, 3))))");
