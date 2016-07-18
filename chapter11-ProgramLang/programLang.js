@@ -1,10 +1,27 @@
 "use strict";
 
 function skipSpace(string) {
-    // Skip space until a single character other than a white space is found   
+    // Skip comments and spaces until a single character other than a white space is found
 
-    var first = string.search(/\S/);
+    var commentRegEx = /^\s*\#/,
+        comment = string.search(commentRegEx),
+        newLine,
+        first;
+    // first = string.search(/\S/);
 
+    // If the string begins with spaces followed by #, skip everything until a newline character 
+    // is detected. Repeat until a comment line is not found.
+    while (comment === 0) {
+        newLine = string.search(/\n/) + 1; // Increment to point to first character after newline
+        if (newLine) {
+            string = string.slice(newLine);
+            comment = string.search(commentRegEx);
+        } else {
+            throw new SyntaxError("Unexpected syntax: " + program);
+        }
+    }
+    // \S matches the first non-white space character.
+    first = string.search(/\S/);
     if (first === -1) {
         return "";
     }
@@ -47,7 +64,7 @@ function parseExpression(program) {
             //     to allow letters, numbers and symbols other than left paran,
             //         right paran, comma, double quote
             //         /^[\w~!@#$%&*_-{};?+\/=><]+/
-            console.log(program);
+            // console.log(program);
             match = /^[\w~!@#$%&*_\-{};?+\/=><]+/.exec(program);
             if (match) {
                 expr = {
@@ -97,7 +114,7 @@ function parseApply(expr, program) {
 
 function parse(program) {
     var result = parseExpression(program);
-    // console.log("Result: ", result);
+    console.log("Result: ", result);
     if (skipSpace(result.rest).length > 0) {
         throw new SyntaxError("Unexpected text after program");
     }
@@ -238,7 +255,7 @@ topEnv.print = function (value) {
 
 topEnv["array"] = function () {
     var createArray = Array.prototype.slice.call(arguments, 0);
-    console.log("inside create array. What do I do?");
+    // console.log("inside create array. What do I do?");
     return createArray;
     //    var i = 0,
     //        createArray = [];
@@ -251,12 +268,12 @@ topEnv["array"] = function () {
 };
 
 topEnv["length"] = function (arr) {
-    console.log("array length: ", arr.length);
+    //    console.log("array length: ", arr.length);
     return arr.length;
 };
 
 topEnv["element"] = function (arr, i) {
-    console.log("array elemnet ");
+    //    console.log("array elemnet ");
     return arr[i];
 }
 
@@ -269,8 +286,7 @@ function run() {
         program = Array.prototype.slice.call(arguments, 0).join("\n");
 
     console.log("program: ", program);
-    console.log(parse(program));
-    console.log("program: ", program);
+    console.log(JSON.stringify(parse(program), null, 4));
     return evaluate(parse(program), env);
 }
 
@@ -312,12 +328,14 @@ function run() {
 //    "         *(base, pow(base, -(exp, 1)))))),",
 //    "   print(pow(2, 10)))");
 
-run("do(print(element(array(5,2,3), 1)))");
-run("do(define(sum, fun(array,",
-    "      do(define(i, 0),",
-    "         define(sum, 0),",
-    "         while(<(i, length(array)),",
-    "           do(define(sum, +(sum, element(array, i))),",
-    "              define(i, +(i, 1)))),",
-    "         sum))),",
-    "   print(sum(array(1, 2, 3))))");
+//run("do(print(element(array(5,2,3), 1)))");
+//run("do(define(sum, fun(array,",
+//    "      do(define(i, 0),",
+//    "         define(sum, 0),",
+//    "         while(<(i, length(array)),",
+//    "           do(define(sum, +(sum, element(array, i))),",
+//    "              define(i, +(i, 1)))),",
+//    "         sum))),", "   print(sum(array(1, 2, 3))))");
+
+console.log(parse("# hello\nx"));
+console.log(parse("a # one\n   # two\n()"));
