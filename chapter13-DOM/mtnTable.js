@@ -152,7 +152,7 @@ function buildTable() {
     document.querySelector("table").appendChild(tr);
 
     for (var i = 0; i < headings.length; i += 1) {
-        addHeading(headings[0]);
+        addHeading(headings[i]);
     }
     for (var i = 1; i < mtnArr.length; i += 1) {
         addMtnRow(mtnArr[i], i);
@@ -169,8 +169,91 @@ function buildTable() {
         //            // mtnData.appendChild(item);
     };
 }
+// createNodeAndText is a utility function which creates an element node of specified type, with specified // text and attributes.
+// Returns the node. 
 
-buildTable();
+function createNodeAndText(type, text, attributes) {
+    var node = document.createElement(type);
+    var child = document.createTextNode(text);
+    var i;
+    var attribute;
+
+    if (attributes) {
+        for (i = 0; i < attributes.length; i += 1) {
+            attribute = attributes[i];
+            console.log(attribute);
+            node.setAttribute(attribute[0], attribute[1]);
+        }
+    }
+    node.appendChild(child);
+    return node;
+}
+
+// Given an array of objects that all have the same set of properties, build up a DOM structure
+// the table
+function buildTable2() {
+    var i;
+    var tableHeadings = Object.keys(MOUNTAINS[0]);
+    var table = document.createElement("table");
+
+    // Set up css styling 
+    // The following taken from StackOverFlow
+    var css = 'table  { border-collapse: collapse; }\n' +
+        'td, th { border: 1px solid black; padding: 3px 8px; }\n' +
+        'th     { text-align: left; }';
+
+    head = document.head || document.getElementsByTagName('head')[0],
+        style = document.createElement('style');
+
+    style.type = 'text/css';
+    if (style.styleSheet) {
+        style.styleSheet.cssText = css;
+    } else {
+        style.appendChild(document.createTextNode(css));
+    }
+
+    head.appendChild(style);
+
+    // Build the Heading Row
+    function buildTableHeading() {
+        row = document.createElement("tr");
+
+        tableHeadings.forEach(function (heading) {
+            console.log(heading);
+            row.appendChild(createNodeAndText("th", heading));
+        });
+        return row;
+    }
+
+    // Build an individual row of mountian data
+    function buildTableRow(data) {
+        var i;
+        var attributes = [];
+
+        console.log(data);
+        row = document.createElement("tr");
+        for (i = 0; i < tableHeadings.length; i += 1) {
+            attributes = [];
+            console.log(data[tableHeadings[i]]);
+            if (tableHeadings[i] === "height") {
+                attributes = [
+                    ["style", "text-align: right;"]
+                ];
+            }
+            row.appendChild(createNodeAndText("td", (data[tableHeadings[i]]).toString(), attributes));
+        }
+        return row;
+    }
+
+    table.appendChild(buildTableHeading());
+    for (i = 0; i < MOUNTAINS.length; i += 1) {
+        table.appendChild(buildTableRow(MOUNTAINS[i]));
+    }
+    document.querySelector("body").appendChild(table);
+}
+
+// buildTable();
+buildTable2();
 
 // This inserts the table after the script tag for this in the html
 // Will this be a problem?
