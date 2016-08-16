@@ -17,24 +17,70 @@ var colors = [GREEN, BLUE, YELLOW, PINK, DEFAULT];
 
 var SIZE = 20;
 var boxdiv;
+var halfboxdiv;
 var body;
 var dotdiv;
 var cleardiv;
 var dotdivs;
 var elem;
 var colorIndex;
+var currentId = 0;
 
-body = document.querySelector('body');
-for (row = 0; row < SIZE; row += 1) {
+function addOddRow() {
+    // add first half-box
+    halfboxdiv = document.createElement('div');
+    halfboxdiv.className = 'half-box';
+    document.body.appendChild(halfboxdiv);
+
+    for (column = 0; column < SIZE - 1; column += 1) {
+        boxdiv = document.createElement('div');
+        boxdiv.className = 'box';
+        dotdiv = document.createElement('div');
+        dotdiv.className = 'dot';
+        dotdiv.id = 'dot' + currentId.toString();
+        currentId += 1;
+        // dotdiv.id = 'dot' + (row * SIZE + column).toString();
+        boxdiv.appendChild(dotdiv);
+        document.body.appendChild(boxdiv);
+    }
+    // add last half-box
+    halfboxdiv = document.createElement('div');
+    halfboxdiv.className = 'half-box';
+    document.body.appendChild(halfboxdiv);
+}
+
+function addEvenRow() {
     for (column = 0; column < SIZE; column += 1) {
         boxdiv = document.createElement('div');
         boxdiv.className = 'box';
         dotdiv = document.createElement('div');
         dotdiv.className = 'dot';
-        dotdiv.id = 'dot' + (row * SIZE + column).toString();
+        dotdiv.id = 'dot' + currentId.toString();
+        currentId += 1;
+        // dotdiv.id = 'dot' + (row * SIZE + column).toString();
         boxdiv.appendChild(dotdiv);
         document.body.appendChild(boxdiv);
     }
+}
+
+body = document.querySelector('body');
+for (row = 0; row < SIZE; row += 1) {
+    if (row % 2 === 0) {
+        addEvenRow();
+
+        //    for (column = 0; column < SIZE; column += 1) {
+        //        boxdiv = document.createElement('div');
+        //        boxdiv.className = 'box';
+        //        dotdiv = document.createElement('div');
+        //        dotdiv.className = 'dot';
+        //        dotdiv.id = 'dot' + (row * SIZE + column).toString();
+        //        boxdiv.appendChild(dotdiv);
+        //        document.body.appendChild(boxdiv);
+        //    }
+    } else {
+        addOddRow();
+    }
+
     // clear the left float
     cleardiv = document.createElement('div');
     cleardiv.className = 'left-clear';
@@ -42,14 +88,12 @@ for (row = 0; row < SIZE; row += 1) {
 }
 dotdivs = document.getElementsByClassName('dot');
 for (i = 0; i < dotdivs.length; i += 1) {
-    console.log('adding click event listener to :', dotdivs[i])
     dotdivs[i].addEventListener('click', function (event) {
         elem = document.getElementById(event.target.id);
         colorIndex = colors.indexOf(elem.style.backgroundColor);
         if (colorIndex < 0) {
             elem.style.backgroundColor = colors[0]; // set to first color if not in array, original
         } else {
-            console.log('Next color index: ', (colorIndex + 1) % colors.length);
             elem.style.backgroundColor = colors[(colorIndex + 1) % colors.length];
         }
     })
