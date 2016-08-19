@@ -1,12 +1,16 @@
 var req = new XMLHttpRequest();
 var response;
 var resIdsTypes = [{
-    text: 'text/plain'
+        text: 'text/plain'
 }, {
-    html: 'text/html'
+        html: 'text/html'
 }, {
-    json: 'application/json'
-}];
+        json: 'application/json'
+},
+    {
+        'rainbows+unicorns': 'rainbows+unicorns'
+    }];
+
 var id;
 var resIdType;
 var resType;
