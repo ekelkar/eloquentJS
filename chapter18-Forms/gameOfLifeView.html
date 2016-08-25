@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Conway's Game Of Life</title>
+    <style>
+        .dot {
+            height: 12px;
+            width: 12px;
+            border-radius: 6px;
+            background-color: rgb(43, 43, 43);
+            /* from grey changed to almost black */
+        }
+        
+        .box {
+            height: 16px;
+            width: 16px;
+            background-color: black;
+            float: left;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .grid-element {
+            float: left;
+            border: 1px solid;
+            /*
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 20px;
+            width: 20px;
+*/
+        }
+        
+        .grid-element2 {
+            border: 1px solid;
+        }
+        
+        .test {
+            border: 1px solid green;
+        }
+        
+        .half-box {
+            height: 16px;
+            width: 8px;
+            background-color: black;
+            float: left;
+        }
+        
+        .left-clear {
+            clear: left;
+        }
+        
+        .button-top {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Conway's Game of Life</h1>
+    <div id='grid'>
+    </div>
+    <button id="next" class='button-top'> Next generation</button>
+    <script src="gameOfLife.js"></script>
+</body>
+
+</html>
