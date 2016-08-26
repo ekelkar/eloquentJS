@@ -1,57 +1,79 @@
-var GREEN = 'rgb(62, 210, 59)'; // chrome use rgb values instead of hex '#3ED23B';
-var BLUE = 'rgb(48, 123, 200)'; // #307BC8
-var YELLOW = 'rgb(231, 244, 90)'; // #E7F45A
-var VIOLET = 'rgb(121, 62, 140)'; // #793E8C
-var PINK = 'rgb(227, 57, 80)'; // #E33950
-var RED = 'rgb(109, 19, 21)'; // #6D1315
-var CLEAR = 'rgb(195, 195, 185)'; // #C3C3B9
-var ORANGE = 'rgb(212, 120, 98)'; // '#D47862
-var DEFAULT = 'rgb(43, 43, 43)'; // dark gray
-var colors = [GREEN, BLUE, YELLOW, PINK, DEFAULT];
+// Conway’s Game of Life
+//
+// Conway’s Game of Life is a simple simulation that creates artificial “life” 
+// on a grid, each cell of which is either live or not. Each generation (turn), 
+//    the following rules are applied:
+//
+//    Any live cell with fewer than two or more than three live neighbors dies.
+//
+//    Any live cell with two or three live neighbors lives on to the next generation.
+//
+//    Any dead cell with exactly three live neighbors becomes a live cell.
+//
+// A neighbor is defined as any adjacent cell, including diagonally adjacent ones.
+//
+// Note that these rules are applied to the whole grid at once, not one square at 
+// a time. That means the counting of neighbors is based on the situation at the start 
+// of the generation, and changes happening to neighbor cells during this generation 
+// should not influence the new state of a given cell.
+//
+// Implement this game using whichever data structure you find appropriate. Use 
+// Math.random to populate the grid with a random pattern initially. Display it as a 
+// grid of checkbox fields, with a button next to it to advance to the next generation. 
+// When the user checks or unchecks the checkboxes, their changes should be included 
+// when computing the next generation.
+// 
+// Checked check box indicates creature in that cell is alive.
 
-var BOXSIZE = 16; // size of each box in px
-var MARGIN = 8; // size of margin around body in px 
-
-var noOfColumns = 10;
-var noOfRows = 10;
+var noOfColumns = 5;
+var noOfRows = 3;
 
 var grid = document.querySelector('#grid');
-var alive = [];
+var next = document.getElementById('next');
 
 function Vector(x, y) {
     this.x = x;
     this.y = y;
 }
+
 Vector.prototype.plus = function (other) {
     return new Vector(this.x + other.x, this.y + other.y);
 }
-
-a = new Vector(2, 3);
-b = new Vector(1, 1);
-console.log(a.plus(b));
 
 function AliveGrid(width, height) {
     this.aliveMap = new Array(width, height);
     this.width = width;
     this.height = height;
 }
+
 AliveGrid.prototype.isInside = function (vector) {
     return vector.x >= 0 && vector.x < this.width &&
         vector.y >= 0 && vector.y < this.height;
 };
+
 AliveGrid.prototype.get = function (vector) {
     return this.aliveMap[vector.x + this.width * vector.y];
 };
+
 AliveGrid.prototype.set = function (vector, value) {
     this.aliveMap[vector.x + this.width * vector.y] = value;
 };
-var aliveTest = new AliveGrid(noOfColumns, noOfRows);
-console.log(aliveTest.get(new Vector(1, 1)));
-aliveTest.set(new Vector(1, 1), "X");
-console.log(aliveTest.get(new Vector(1, 1)));
 
 var currentAlive = new AliveGrid(noOfColumns, noOfRows);
 var newAlive = new AliveGrid(noOfColumns, noOfRows);
+
+var directions = {
+    'n': new Vector(0, -1),
+    'ne': new Vector(1, -1),
+    'e': new Vector(1, 0),
+    'se': new Vector(1, 1),
+    's': new Vector(0, 1),
+    'sw': new Vector(-1, 1),
+    'w': new Vector(-1, 0),
+    'nw': new Vector(-1, -1),
+}
+
+var directionNames = Object.keys(directions);
 
 function createGrid() {
 
@@ -60,18 +82,18 @@ function createGrid() {
     var currentId = 0;
     var body;
 
-    //    function createHalfBox() {
-    //        var halfboxdiv;
-    //
-    //        halfboxdiv = document.createElement('div');
-    //        halfboxdiv.className = 'half-box';
-    //
-    //        return halfboxdiv;
-    //    }
-
     function createDivWithCheckbox() {
         var div;
         var checkbox;
+
+        function updateCell() {
+            var idNo = parseInt(checkbox.id.slice(2));
+            var cellVector = new Vector(idNo % noOfColumns,
+                Math.floor(idNo / noOfColumns));
+            currentAlive.set(cellVector, checkbox.checked);
+            console.log('checkbox clicked: ', idNo, checkbox.checked);
+            console.log('checked vector: ', cellVector, currentAlive.get(cellVector));
+        }
 
         div = document.createElement('div');
         div.className = 'grid-element';
@@ -80,23 +102,12 @@ function createGrid() {
         checkbox.type = 'checkbox';
         checkbox.id = 'cb' + currentId.toString();
         // checkbox.checked = alive[currentId];
+        checkbox.addEventListener('click', updateCell);
         currentId += 1;
         div.appendChild(checkbox);
 
         return div;
     }
-
-    //    function addOddRow() {
-    //        // add first half-box
-    //        document.body.appendChild(createHalfBox());
-    //
-    //        for (column = 0; column < noOfColumns - 1; column += 1) {
-    //            document.body.appendChild(createBoxWithDot());
-    //        }
-    //
-    //        // add last half-box
-    //        document.body.appendChild(createHalfBox());
-    //    }
 
     function addRow() {
         for (column = 0; column < noOfColumns; column += 1) {
@@ -117,14 +128,68 @@ function createGrid() {
 function initializeAlive() {
     var row;
     var column;
-    var isAlive;
-    var checkbox;
 
     for (row = 0; row < noOfRows; row += 1) {
         for (column = 0; column < noOfColumns; column += 1) {
             currentAlive.set(new Vector(column, row), (Math.random() < 0.5 ? true : false));
         }
     }
+}
+
+function neighborAlive(column, row, directionName) {
+    var locationToCheck = directions[directionName].plus(new Vector(column, row));
+
+    if (currentAlive.isInside(locationToCheck)) {
+        return currentAlive.get(locationToCheck);
+    } else {
+        return false;
+    }
+}
+
+function updateNewCell(column, row, noNeighborsAlive) {
+    var location = new Vector(column, row);
+    var isAlive = currentAlive.get(location);
+    var nextAlive;
+
+    if (isAlive) {
+        if (noNeighborsAlive === 2 || noNeighborsAlive === 3) {
+            newAlive.set(location, true);
+            nextAlive = true;
+        } else {
+            newAlive.set(location, false);
+            nextAlive = false;
+        }
+    } else { // cell currently dead
+        if (noNeighborsAlive === 3) {
+            newAlive.set(location, true);
+            nextAlive = true;
+        } else {
+            newAlive.set(location, false);
+            nextAlive = false;
+        }
+    }
+    console.log('column: ', column, 'row: ', row, 'isAlive: ', isAlive)
+    console.log('noNeighborsAlive: ', noNeighborsAlive);
+    console.log('nextAlive: ', nextAlive);
+}
+
+function computeNextGeneration() {
+    var noNeighborsAlive = 0;
+
+    for (row = 0; row < noOfRows; row += 1) {
+        for (column = 0; column < noOfColumns; column += 1) {
+            noNeighborsAlive = 0;
+
+            directionNames.forEach(function (directionName) {
+                if (neighborAlive(column, row, directionName)) {
+                    noNeighborsAlive += 1;
+                }
+            });
+            updateNewCell(column, row, noNeighborsAlive);
+        }
+    }
+    currentAlive = newAlive;
+    displayGrid(newAlive);
 }
 
 function displayGrid(aliveMap) {
@@ -174,9 +239,10 @@ function displayGrid(aliveMap) {
 //}
 
 //initializeAlive();
+next.addEventListener('click', computeNextGeneration);
 createGrid();
 initializeAlive();
-setTimeout(displayGrid, 5000, currentAlive);
+displayGrid();
 
 
 // Changed from event listener for each do to one for the board.
